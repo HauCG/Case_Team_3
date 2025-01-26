@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("")
 public class FrontController {
 
-    @GetMapping("/home")
+    @GetMapping("")
     public String home() {
-        return "home";
+        return "index";
     }
 
 }
