@@ -1,33 +1,35 @@
+// Create file: src/main/java/com/example/case_team_3/model/Room.java
 package com.example.case_team_3.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
 @Entity
-@Table(name = "room")
+@Getter
+@Setter
+@Table(name = "rooms")
 public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer roomId;
+    private Integer room_id;
 
-    private String roomImg;
+    @Column(length = 100)
+    private String room_img;
 
     @ManyToOne
-    @JoinColumn(name = "roomType_id")
+    @JoinColumn(name = "roomType_id", nullable = false)
     private RoomType roomType;
 
     @Enumerated(EnumType.STRING)
-    private RoomStatus roomStatus;
+    @Column(nullable = false)
+    private RoomStatus room_status;
 
-    private Float roomPrice;
+    @Column(nullable = false)
+    private Float room_price;
 
     @Column(columnDefinition = "TEXT")
-    private String roomDescription;
-
-    @OneToMany(mappedBy = "room")
-    private List<Booking> bookings;
+    private String room_description;
 
     public enum RoomStatus {
         available, booked, cleaning

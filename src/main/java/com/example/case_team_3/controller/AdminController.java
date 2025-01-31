@@ -18,7 +18,7 @@ public class AdminController {
 
     @GetMapping("/dashboard")
     public String dashboard() {
-        return "admin/dashboard";
+        return "dashboard";
     }
 
     @GetMapping("/register-employee")

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
+    <style>
+        .countdown {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .expired {
+            color: #6c757d;
+        }
+        .code-cell {
+            font-family: monospace;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+        }
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .spinner {
+            width: 15px;
+            height: 15px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .refresh-active .spinner {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/admin/dashboard">Admin Dashboard</a>
+            <a class="btn btn-outline-light" href="/admin/dashboard">Quay lại Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <!-- Form bên trái -->
+            <div class="col-md-6">
+                <h2>Test Gửi Email</h2>
+                
+                <!-- Thông báo kết quả -->
+                <div th:if="${message}" class="alert mt-3 mb-4" th:classappend="${success} ? 'alert-success' : 'alert-danger'" role="alert">
+                    <span th:text="${message}"></span>
+                </div>
+
+                <!-- Form gửi mã xác nhận -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Gửi mã xác nhận</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/test/send-email}" method="post" id="sendForm">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-envelope"></i> Gửi mã xác nhận
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Form xác nhận mã -->
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">Kiểm tra mã xác nhận</h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/test/verify-code}" method="post" id="verifyForm">
+                            <div class="mb-3">
+                                <label for="verificationEmail" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="verificationEmail" name="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="code" class="form-label">Mã xác nhận</label>
+                                <input type="text" class="form-control code-cell" id="code" name="code" 
+                                       pattern="[0-9]{6}" title="Mã xác nhận phải là 6 chữ số" required
+                                       placeholder="Nhập mã 6 số">
+                                <div class="form-text">Mã xác nhận có hiệu lực trong 2 phút</div>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Xác nhận mã
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danh sách mã bên phải -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Danh sách mã xác nhận đã gửi</h5>
+                            <div class="auto-refresh">
+                                <div class="spinner"></div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                                    <label class="form-check-label text-white" for="autoRefresh">Tự động cập nhật</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Email</th>
+                                        <th>Mã</th>
+                                        <th>Thời gian còn lại</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="email : ${verificationEmails}" 
+                                        th:class="${email.expired} ? 'expired' : ''">
+                                        <td th:text="${email.email}"></td>
+                                        <td class="code-cell" th:text="${email.code}"></td>
+                                        <td>
+                                            <span th:if="${!email.expired && !email.used}" 
+                                                  th:text="${email.remainingSeconds + ' giây'}"
+                                                  class="countdown"></span>
+                                            <span th:if="${email.expired || email.used}" 
+                                                  class="text-muted">Hết hạn</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${email.used}" class="badge bg-success">
+                                                <i class="bi bi-check-circle-fill"></i> Đã sử dụng
+                                            </span>
+                                            <span th:if="${!email.used && !email.expired}" class="badge bg-primary">
+                                                <i class="bi bi-clock"></i> Chờ xác nhận
+                                            </span>
+                                            <span th:if="${!email.used && email.expired}" class="badge bg-danger">
+                                                <i class="bi bi-x-circle-fill"></i> Hết hạn
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cập nhật thời gian còn lại mỗi giây
+        function updateCountdowns() {
+            document.querySelectorAll('.countdown').forEach(element => {
+                let seconds = parseInt(element.textContent);
+                if (seconds > 0) {
+                    element.textContent = (seconds - 1) + ' giây';
+                } else {
+                    element.parentElement.innerHTML = '<span class="text-muted">Hết hạn</span>';
+                    element.closest('tr').classList.add('expired');
+                    updateStatus(element.closest('tr'));
+                }
+            });
+        }
+
+        // Cập nhật trạng thái khi hết hạn
+        function updateStatus(row) {
+            const statusCell = row.querySelector('td:last-child');
+            statusCell.innerHTML = '<span class="badge bg-danger"><i class="bi bi-x-circle-fill"></i> Hết hạn</span>';
+        }
+
+        // Auto refresh danh sách mã
+        let refreshInterval;
+        const autoRefreshCheckbox = document.getElementById('autoRefresh');
+        const spinner = document.querySelector('.spinner');
+
+        function startAutoRefresh() {
+            refreshInterval = setInterval(() => {
+                if (autoRefreshCheckbox.checked) {
+                    spinner.style.display = 'inline-block';
+                    fetch(window.location.href)
+                        .then(response => response.text())
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            const newTable = doc.querySelector('.table-responsive');
+                            document.querySelector('.table-responsive').innerHTML = newTable.innerHTML;
+                            spinner.style.display = 'none';
+                        });
+                }
+            }, 5000); // Refresh mỗi 5 giây
+        }
+
+        autoRefreshCheckbox.addEventListener('change', () => {
+            if (autoRefreshCheckbox.checked) {
+                startAutoRefresh();
+            } else {
+                clearInterval(refreshInterval);
+                spinner.style.display = 'none';
+            }
+        });
+
+        // Copy mã khi click vào ô mã
+        document.addEventListener('click', e => {
+            if (e.target.classList.contains('code-cell')) {
+                const code = e.target.textContent;
+                navigator.clipboard.writeText(code);
+                const originalBg = e.target.style.backgroundColor;
+                e.target.style.backgroundColor = '#d4edda';
+                setTimeout(() => e.target.style.backgroundColor = originalBg, 200);
+            }
+        });
+
+        // Auto-fill email khi click vào email trong bảng
+        document.addEventListener('click', e => {
+            const row = e.target.closest('tr');
+            if (row) {
+                const email = row.querySelector('td:first-child').textContent;
+                const code = row.querySelector('.code-cell').textContent;
+                document.getElementById('verificationEmail').value = email;
+                if (!row.classList.contains('expired')) {
+                    document.getElementById('code').focus();
+                }
+            }
+        });
+
+        // Start the countdowns
+        setInterval(updateCountdowns, 1000);
+        startAutoRefresh();
+
+        // Tự động điền email từ form gửi sang form xác nhận
+        document.getElementById('sendForm').addEventListener('submit', function() {
+            const email = document.getElementById('email').value;
+            document.getElementById('verificationEmail').value = email;
+        });
+    </script>
+</body>
+</html>
